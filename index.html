@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enviar Fotos</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c28;
+    --border: #2a2a3d;
+    --accent: #f97316;
+    --accent2: #fb923c;
+    --accent3: #6affca;
+    --text: #fdf4ec;
+    --muted: #6b6b8a;
+    --success: #1adb8a;
+  }
+
+  html, body {
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    width: 700px; height: 700px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(249,115,22,0.09) 0%, transparent 70%);
+    top: -300px; right: -200px;
+    pointer-events: none; z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    width: 500px; height: 500px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(106,255,202,0.05) 0%, transparent 70%);
+    bottom: -200px; left: -100px;
+    pointer-events: none; z-index: 0;
+  }
+
+  .container {
+    position: relative; z-index: 1;
+    max-width: 620px;
+    margin: 0 auto;
+    padding: 52px 24px 80px;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: rgba(249,115,22,0.1);
+    border: 1px solid rgba(249,115,22,0.25);
+    color: #fdba74;
+    font-size: 11px; font-weight: 500;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 5px 14px; border-radius: 100px;
+    margin-bottom: 18px;
+  }
+  .badge::before {
+    content: ''; width: 6px; height: 6px;
+    border-radius: 50%; background: var(--accent3);
+    animation: pulse 2s ease infinite;
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(26px, 6vw, 40px);
+    font-weight: 800; line-height: 1.1;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #fff 0%, #fdba74 60%, #f97316 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 10px;
+  }
+  .subtitle { color: var(--muted); font-size: 14px; line-height: 1.6; font-weight: 300; }
+
+  /* Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px;
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+
+  /* Drop zone */
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 14px;
+    padding: 44px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    background: rgba(255,255,255,0.01);
+    margin-bottom: 20px;
+  }
+  .drop-zone:hover, .drop-zone.over {
+    border-color: var(--accent);
+    background: rgba(249,115,22,0.05);
+  }
+  .drop-zone input {
+    position: absolute; inset: 0; opacity: 0;
+    cursor: pointer; width: 100%; height: 100%;
+  }
+  .drop-icon {
+    width: 52px; height: 52px; margin: 0 auto 14px;
+    background: linear-gradient(135deg, rgba(249,115,22,0.15), rgba(251,146,60,0.08));
+    border: 1px solid rgba(249,115,22,0.2);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+  .drop-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 600; margin-bottom: 5px; }
+  .drop-hint { font-size: 13px; color: var(--muted); }
+  .drop-hint span { color: var(--accent); font-weight: 500; }
+  .formats { display: flex; gap: 5px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+  .fmt { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); font-size: 11px; padding: 3px 8px; border-radius: 100px; }
+
+  /* Preview */
+  .preview-bar {
+    display: none; justify-content: space-between; align-items: center;
+    font-size: 12px; color: var(--muted); margin-bottom: 10px;
+  }
+  .preview-bar.show { display: flex; }
+  .preview-bar strong { color: var(--accent3); }
+  .clear-all { background: none; border: none; color: var(--muted); font-size: 12px; cursor: pointer; text-decoration: underline; }
+  .clear-all:hover { color: #ff6b6b; }
+
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    gap: 8px; margin-bottom: 20px;
+  }
+  .thumb {
+    position: relative; aspect-ratio: 1;
+    border-radius: 8px; overflow: hidden;
+    border: 1px solid var(--border);
+    animation: popIn 0.25s ease both;
+  }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb .rm {
+    position: absolute; top: 3px; right: 3px;
+    width: 18px; height: 18px;
+    background: rgba(0,0,0,0.75); border: none; border-radius: 50%;
+    color: #fff; font-size: 10px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.15s;
+  }
+  .thumb:hover .rm { opacity: 1; }
+
+  /* Status per thumb */
+  .thumb .status {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    background: rgba(0,0,0,0.55);
+    opacity: 0; transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  .thumb.uploading .status { opacity: 1; }
+  .thumb.done .status { opacity: 1; }
+  .thumb.error-state .status { opacity: 1; }
+
+  /* Note */
+  .field-label { font-size: 11px; font-weight: 500; color: var(--muted); letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 7px; display: block; }
+  textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text); font-family: 'DM Sans', sans-serif;
+    font-size: 13px; padding: 11px 14px; outline: none; resize: vertical;
+    min-height: 70px; margin-bottom: 20px; transition: border-color 0.2s;
+  }
+  textarea::placeholder { color: #3d3d5c; }
+  textarea:focus { border-color: var(--accent); }
+
+  /* Submit */
+  .btn-submit {
+    width: 100%; padding: 15px;
+    border: none; border-radius: 12px;
+    background: linear-gradient(135deg, #f97316, #fb923c, #fbbf24);
+    color: #fff; font-family: 'Syne', sans-serif;
+    font-size: 15px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .btn-submit::before { content: ''; position: absolute; inset: 0; background: rgba(255,255,255,0); transition: 0.2s; }
+  .btn-submit:hover::before { background: rgba(255,255,255,0.08); }
+  .btn-submit:active { transform: scale(0.99); }
+  .btn-submit:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* Progress */
+  .prog-wrap { display: none; margin-top: 18px; }
+  .prog-wrap.show { display: block; }
+  .prog-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 7px; }
+  .prog-track { height: 5px; background: var(--border); border-radius: 100px; overflow: hidden; }
+  .prog-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), #fbbf24); border-radius: 100px; transition: width 0.25s; }
+
+  /* Error retry list */
+  .retry-box { display: none; background: rgba(239,68,68,0.07); border: 1px solid rgba(239,68,68,0.2); border-radius: 10px; padding: 14px; margin-top: 16px; font-size: 13px; }
+  .retry-box.show { display: block; }
+  .retry-box p { color: #fca5a5; margin-bottom: 10px; }
+  .btn-retry { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 7px 16px; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+  .btn-retry:hover { background: rgba(239,68,68,0.25); }
+
+  /* Success */
+  .success { display: none; text-align: center; padding: 44px 20px; animation: fadeUp 0.4s ease both; }
+  .success.show { display: block; }
+  .s-icon { width: 68px; height: 68px; background: rgba(26,219,138,0.12); border: 1px solid rgba(26,219,138,0.25); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 18px; }
+  .s-title { font-family: 'Syne', sans-serif; font-size: 21px; font-weight: 700; color: var(--success); margin-bottom: 6px; }
+  .s-sub { color: var(--muted); font-size: 13px; margin-bottom: 22px; line-height: 1.6; }
+  .btn-reset { background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 9px 22px; border-radius: 100px; cursor: pointer; transition: 0.2s; }
+  .btn-reset:hover { border-color: var(--accent); }
+
+  /* Info pills */
+  .pills { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; animation: fadeUp 0.6s 0.25s ease both; }
+  .pill { flex: 1; min-width: 130px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 11px 13px; display: flex; align-items: center; gap: 9px; }
+  .pill-icon { font-size: 16px; }
+  .pill-text { font-size: 11px; color: var(--muted); line-height: 1.4; }
+  .pill-text strong { color: var(--text); font-weight: 500; display: block; }
+
+
+
+  @keyframes fadeUp { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes popIn { from { opacity:0; transform:scale(0.75); } to { opacity:1; transform:scale(1); } }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner { display:inline-block; animation: spin 0.8s linear infinite; }
+
+  @media(max-width:480px) { .container{padding:28px 14px 60px;} .card{padding:18px;} .pill{min-width:100%;} }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="badge">Recolección M3</div>
+    <h1>Envía tus fotos</h1>
+    <p class="subtitle">Sube tus imágenes de forma rápida y segura.<br>No necesitas cuenta ni correo electrónico.</p>
+  </div>
+
+  <!-- Upload card -->
+  <div class="card" id="card">
+    <div class="drop-zone" id="dz">
+      <input type="file" id="fi" accept="image/*" multiple>
+      <div class="drop-icon">📷</div>
+      <div class="drop-title">Arrastra tus fotos aquí</div>
+      <div class="drop-hint">o <span>haz clic para seleccionar</span></div>
+      <div class="formats">
+        <span class="fmt">JPG</span><span class="fmt">PNG</span>
+        <span class="fmt">WEBP</span><span class="fmt">HEIC</span><span class="fmt">GIF</span>
+      </div>
+    </div>
+
+    <div class="preview-bar" id="pbar">
+      <span><strong id="pcount">0</strong> imagen(es) seleccionada(s)</span>
+      <button class="clear-all" onclick="clearAll()">Limpiar todo</button>
+    </div>
+    <div id="grid"></div>
+
+    <label class="field-label">Nota (opcional)</label>
+    <textarea id="note" placeholder="Añade un mensaje o descripción..."></textarea>
+
+    <button class="btn-submit" id="btnSend" disabled onclick="sendAll()">
+      Enviar fotos →
+    </button>
+
+    <div class="prog-wrap" id="prog">
+      <div class="prog-labels">
+        <span id="prog-label">Enviando...</span>
+        <span id="prog-pct">0%</span>
+      </div>
+      <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
+    </div>
+
+    <div class="retry-box" id="retryBox">
+      <p id="retry-msg"></p>
+      <button class="btn-retry" onclick="retrySend()">↻ Reintentar fallidas</button>
+    </div>
+  </div>
+
+  <!-- Success -->
+  <div class="success" id="successPanel">
+    <div class="s-icon">✓</div>
+    <div class="s-title">¡Fotos enviadas!</div>
+    <div class="s-sub" id="s-sub">Tus imágenes se guardaron correctamente.</div>
+    <button class="btn-reset" onclick="resetAll()">Enviar más fotos</button>
+  </div>
+
+
+
+
+
+</div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────
+// IMPORTANTE: Reemplaza esta URL con la de tu Worker
+const WORKER_URL = 'https://recibir-fotos.equipodetrabajogt.workers.dev';
+
+let files = [];       // { file, status: 'pending'|'uploading'|'done'|'error' }
+let failedIndexes = [];
+
+// ── File handling ─────────────────────────────────────────────
+const dz = document.getElementById('dz');
+const fi = document.getElementById('fi');
+
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('over'); addFiles([...e.dataTransfer.files]); });
+fi.addEventListener('change', () => { addFiles([...fi.files]); fi.value = ''; });
+
+function addFiles(newFiles) {
+  const imgs = newFiles.filter(f => f.type.startsWith('image/'));
+  imgs.forEach(f => files.push({ file: f, status: 'pending' }));
+  renderGrid();
+  updateBtn();
+}
+
+function clearAll() { files = []; renderGrid(); updateBtn(); }
+
+function removeFile(i) {
+  files.splice(i, 1);
+  renderGrid(); updateBtn();
+}
+
+function renderGrid() {
+  const grid = document.getElementById('grid');
+  const pbar = document.getElementById('pbar');
+  document.getElementById('pcount').textContent = files.length;
+  pbar.classList.toggle('show', files.length > 0);
+  grid.innerHTML = '';
+  files.forEach((f, i) => {
+    const div = document.createElement('div');
+    div.className = 'thumb ' + f.status;
+    div.id = 'thumb-' + i;
+    const url = URL.createObjectURL(f.file);
+    const emoji = f.status === 'uploading' ? '<span class="spinner">⏳</span>'
+                : f.status === 'done'      ? '✅'
+                : f.status === 'error'     ? '❌'
+                : '';
+    div.innerHTML = `<img src="${url}"><div class="status">${emoji}</div>
+      ${f.status === 'pending' ? `<button class="rm" onclick="removeFile(${i})">✕</button>` : ''}`;
+    grid.appendChild(div);
+  });
+}
+
+function updateThumb(i) {
+  const el = document.getElementById('thumb-' + i);
+  if (!el) return;
+  el.className = 'thumb ' + files[i].status;
+  const emoji = files[i].status === 'uploading' ? '<span class="spinner">⏳</span>'
+              : files[i].status === 'done'       ? '✅'
+              : files[i].status === 'error'      ? '❌'
+              : '';
+  el.querySelector('.status').innerHTML = emoji;
+  const rm = el.querySelector('.rm');
+  if (rm) rm.remove();
+}
+
+function updateBtn() {
+  const pending = files.filter(f => f.status === 'pending').length;
+  document.getElementById('btnSend').disabled = pending === 0;
+}
+
+// ── Upload ────────────────────────────────────────────────────
+async function sendAll() {
+  const workerUrl = WORKER_URL;
+
+  const note = document.getElementById('note').value.trim();
+  const timestamp = new Date().toISOString();
+  const toUpload = files.map((f, i) => ({ ...f, idx: i })).filter(f => f.status === 'pending');
+
+  document.getElementById('btnSend').disabled = true;
+  document.getElementById('prog').classList.add('show');
+  document.getElementById('retryBox').classList.remove('show');
+  failedIndexes = [];
+
+  let done = 0;
+  for (const item of toUpload) {
+    files[item.idx].status = 'uploading';
+    updateThumb(item.idx);
+    setProgress(done, toUpload.length, `Enviando ${item.file.name}...`);
+
+    try {
+      const b64 = await toBase64(item.file);
+      const payload = {
+        fileName: 'M3/' + item.file.name,
+        fileData: b64.split(',')[1],
+        mimeType: item.file.type,
+        note,
+        timestamp,
+      };
+
+      const res = await fetchWithRetry(`${workerUrl}/upload`, payload, 3);
+      if (res.ok) {
+        files[item.idx].status = 'done';
+      } else {
+        files[item.idx].status = 'error';
+        failedIndexes.push(item.idx);
+      }
+    } catch {
+      files[item.idx].status = 'error';
+      failedIndexes.push(item.idx);
+    }
+
+    done++;
+    updateThumb(item.idx);
+    setProgress(done, toUpload.length, `Enviadas ${done} de ${toUpload.length}`);
+  }
+
+  document.getElementById('prog').classList.remove('show');
+
+  if (failedIndexes.length === 0) {
+    // All good — show success
+    document.getElementById('card').style.display = 'none';
+    const panel = document.getElementById('successPanel');
+    panel.classList.add('show');
+    const total = files.filter(f => f.status === 'done').length;
+    document.getElementById('s-sub').textContent =
+      `${total} imagen${total !== 1 ? 'es' : ''} guardada${total !== 1 ? 's' : ''} correctamente en Cloudflare R2.`;
+  } else {
+    document.getElementById('retryBox').classList.add('show');
+    document.getElementById('retry-msg').textContent =
+      `${failedIndexes.length} imagen${failedIndexes.length > 1 ? 'es' : ''} no se pudo${failedIndexes.length > 1 ? 'ron' : ''} enviar. ¿Deseas reintentar?`;
+    // Re-mark failed as pending for retry
+    failedIndexes.forEach(i => { files[i].status = 'pending'; });
+    renderGrid();
+    updateBtn();
+  }
+}
+
+async function retrySend() {
+  failedIndexes.forEach(i => { files[i].status = 'pending'; });
+  renderGrid();
+  await sendAll();
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+async function fetchWithRetry(url, payload, retries) {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      return res;
+    } catch (e) {
+      if (attempt === retries - 1) throw e;
+      await sleep(1000 * (attempt + 1)); // backoff: 1s, 2s
+    }
+  }
+}
+
+function toBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+function setProgress(done, total, label) {
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-pct').textContent = pct + '%';
+  document.getElementById('prog-label').textContent = label;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function resetAll() {
+  files = [];
+  document.getElementById('grid').innerHTML = '';
+  document.getElementById('pbar').classList.remove('show');
+  document.getElementById('note').value = '';
+  document.getElementById('retryBox').classList.remove('show');
+  document.getElementById('card').style.display = '';
+  document.getElementById('successPanel').classList.remove('show');
+  updateBtn();
+}
+</script>
+</body>
+</html>
